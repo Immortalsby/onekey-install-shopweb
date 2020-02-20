@@ -142,6 +142,9 @@ install_mysql(){
 			mysql -uroot -p$newpwd --connect-expired-password -e "flush privileges;" 
 		fi
 		do_ing
+		pr_red "Deleting all rpm files"
+		do_ing
+		rm -rf mysql*.rpm
 		pr_green "All done!"
 		press_enter
 }
@@ -221,13 +224,13 @@ export PATH=\${JAVA_HOME}/bin:\$PATH" >> /root/.bashrc
 		pr_green "All done!"
 }
 
-install_tomcat(){
+install_app(){
 		clear
 		pr_red "Start installing Tomcat"
 		pr_red "Before install Tomcat, make sure you have already installed JAVA"
 		sleep 2s
 		read -p "Enter the Fullpath for Tomcat(For most situations just press enter to use the default path: /data/hanshow):" apacheurl
-		if [ -z "${database}"];then
+		if [ -z "${apacheurl}"];then
 			apacheurl="/data/hanshow"
 			pr_red "Tomcat will be install in $apacheurl"
 		else
@@ -244,6 +247,7 @@ install_tomcat(){
 		cd $apachepath/bin
 		tar -zxvf commons-daemon-native.tar.gz -C .
 		cd commons-daemon-*native-src/unix/
+		source /root/.bashrc
 		javapathwithbin=`which java`
 		javapath=${javapathwithbin%/*}
 		javap=${javapath%/*}
@@ -262,7 +266,7 @@ install_tomcat(){
 		fi
 		chkconf="#chkconfig:2345 10 90"
 		javahome="JAVA_HOME=$javap"
-		catahome="CATALINE_HOME=$apachepath"
+		catahome="CATALINA_HOME=$apachepath"
 		tomuser="TOMCAT_USER=root"
 		#sed -i '/JAVA_OPTS=/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ./daemon.sh
 		sed -i "0,/JAVA_OPTS=/s//JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"/" ./daemon.sh
@@ -270,9 +274,80 @@ install_tomcat(){
 		sed -i "N;2a$catahome" ./daemon.sh
 		sed -i "N;2a$javahome" ./daemon.sh
 		sed -i "N;2a$chkconf" ./daemon.sh
+		pr_red "Setting shopweb as service"
+		do_ing
+		cp daemon.sh /etc/init.d/shopweb
+		chkconfig --add shopweb
+		pr_red "Start shopweb service"
+		service shopweb start
+		pr_green "Service shopweb started"
 		cd $filepath
 		pr_red "Setting"
 		do_ing
+		pr_green "Done"
+		pr_red "Check if shopweb exists"
+		ifshop=`ls | grep shopweb*`
+		if [ -z  "$ifshop" ];then
+			pr_red "Shopweb not found"
+			pr_red "Skipping"
+			do_ing
+		else
+			pr_green "Shopweb found"
+			if [ $ifshop == "shopweb.war" ];then
+				cp shopweb.war $apachepath/webapps/
+			else
+				cp -r $ifshop $apachepath/webapps/shopweb
+			fi
+			pr_red "Install Shopweb"
+			do_ing
+			pr_green "Done!"
+			sleep 1s
+		fi
+		pr_red "Check if eslworking exists"
+		ifesl=`ls | grep eslworking*`
+		if [ -z  "$ifesl" ];then
+			pr_red "Esl-working not found"
+			pr_red "Skipping"
+			do_ing
+		else
+			pr_green "Esl-working found"
+			pr_red "If your esl-working is not v2.5.4, press ctrl+c to exit"
+			press_enter
+			read -p "Enter the Fullpath for Esl-workong(For most situations just press enter to use the default path: /data/store):" eslurl
+			mkdir -p /data/store
+			if [ -z "${eslurl}" ];then
+				eslurl="/data/store"
+			fi
+			if [[ $ifesl == eslworking*.zip ]];then
+				yum -y install unzip
+				unzip $ifesl -d $eslurl
+				pr_red "You need configure Esl-working yourself"
+			else
+				cp -r $ifesl $eslurl/eslworking
+			fi
+			#sed -i '/JAVA_OPTS=/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ./daemon.sh
+			#sed -i "0,/JAVA_OPTS=/s//JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"/" ./daemon.sh
+			sed -i "0,/JAVA_HOME=/s##JAVA_HOME=$javap#" ${eslurl}/eslworking/bin/eslworking.sh
+			sed -i "0,/APP_HOME=/s##APP_HOME=${eslurl}\/eslworking#" ${eslurl}/eslworking/bin/eslworking.sh
+			appuser="APP_USER=root"
+			sed -i "0,/APP_USER=/s//${appuser}/" ${eslurl}/eslworking/bin/eslworking.sh
+			cp ${eslurl}/eslworking/bin/eslworking.sh /etc/init.d/eslworking
+			chkconfig --add eslworking
+			pr_red "Changing right owner and privilleges"
+			chown root:root -R $eslurl
+			chown root:root -R $apacheurl
+			chmod 755 -R $eslurl
+			chmod 755 -R $apacheurl	
+			do_ing
+			pr_red "Start eslworking service"
+			sudo service eslworking start
+			pr_green "Done!"
+			pr_red "Service eslworking started"
+		fi
+		pr_red "Integration is not installed"
+		pr_red "======"
+		pr_red "Please intall it manually"
+		sleep 2s
 		pr_green "All done!"
 }
 
@@ -322,7 +397,7 @@ echo
 echo -e "\\033[0;31m[WARNING]Attention! All bad operations will destroy the system, please make 300% sure what you will do!\033[0m\n"
 echo
 PS3='Please enter your choice: '
-options=("Install MYSQL" "Install JAVA" "Install Tomcat" "Quit")
+options=("Install MYSQL" "Install JAVA" "Install Applications" "Quit")
 select opt in "${options[@]}"
 do
     case $opt in
@@ -342,10 +417,10 @@ do
 			sh ./start.sh
             break
 			;;
-        "Install Tomcat")
+        "Install Applications")
             pr_red "You chose choice $REPLY which is $opt"
 			press_enter
-			install_tomcat
+			install_app
 			press_enter
 			sh ./start.sh
             break
