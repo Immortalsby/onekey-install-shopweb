@@ -17,7 +17,6 @@ set -o pipefail
 version=0.0.1
 filepath=$(cd "$(dirname "$0")"; pwd)
 jdk_folder="/usr/local/java"
-
 # All funtions needed
 check_root(){
         [[ $EUID != 0 ]] && pr_red "[Error]" && echo -e "You are not having the root permission, please use su - to change your current user to root." && exit 1
@@ -57,6 +56,7 @@ install_mysql(){
 		sleep 2s
 		pr_red "Checking if Mariadb packages have already installed"
 		do_ing
+		pr_red "[WARNING]The list will not be upgrade when you deleted packages"
 		PS3='Please enter which Mariadb package(s) you want to delete: '
 		c=0
 		for pack in `rpm -qa | grep mariadb`
@@ -89,7 +89,7 @@ install_mysql(){
 		sleep 1s
 		do_ing
 		if [ -z  "$maria" ];then
-			pr_red "No mariadb left"
+			pr_green "No mariadb left"
 		else
 			pr_red "Mariadb detected, make sure that you want to continue!"
 		fi
@@ -100,11 +100,11 @@ install_mysql(){
 		do_ing
 		tar -xvf mysql-* > /dev/null
 		pr_red "Installing Mysql"
+		rpm -ivh *-common-*
+		rpm -ivh *-libs-5*
+		rpm -ivh *-client-5*
+		rpm -ivh *-server-5*
 		do_ing
-		rpm -ivh *-common-* > /dev/null
-		rpm -ivh *-libs-5* > /dev/null
-		rpm -ivh *-client-5* > /dev/null
-		rpm -ivh *-server-5* > /dev/null
 		pr_green "Done!"
 		sleep 1s
 		pr_red "Starting service mysqld"
@@ -118,8 +118,9 @@ install_mysql(){
 		fi
 		echo
 		pr_red "New password for root is $newpwd"
-		passwd=`grep password /var/log/mysqld.log | cut -d: -f4 | cut -d' ' -f2 > /dev/null 2>&1`
-		mysql -uroot -p$passwd --connect-expired-password -e "alter user 'root'@'localhost' identified by '$newpwd';" 
+		passwd=`grep "A temporary password is generated for root@localhost:" /var/log/mysqld.log | cut -d: -f4 | cut -d' ' -f2`
+		mysql -uroot -p$passwd --connect-expired-password -e "alter user 'root'@'localhost' identified by '$newpwd';
+		quit" 
 		do_ing
 		read -p "Name of database that you want to creat(Press enter to use the default name: shopweb):" database
 		if [ -z "${database}"];then
@@ -141,7 +142,7 @@ install_mysql(){
 			mysql -uroot -p$newpwd --connect-expired-password -e "flush privileges;" 
 		fi
 		do_ing
-		pre_green "All done!"
+		pr_green "All done!"
 		press_enter
 }
 
@@ -150,6 +151,7 @@ install_java(){
 		pr_red "Start installing JAVA"
 		sleep 1s
 		pr_red "Checking if JAVA packages have already installed"
+		pr_red "[WARNING]The list will not be upgrade when you deleted packages"
 		PS3='Please enter which java package(s) you want to delete: '
 		c=0
 		for pack in `rpm -qa | grep java`
@@ -183,7 +185,7 @@ install_java(){
 		sleep 1s
 		do_ing
 		if ! [ -x  "$(command -v java)" ];then
-			pr_red "No JAVA exists, starting installation"
+			pr_green "No JAVA exists, starting installation"
 			sleep 2s
 		else
 			javav=`java -version`
@@ -208,28 +210,30 @@ install_java(){
 		javapath=$javaurl"/"$javaname
 		do_ing
 		pr_red "Start Setting environment varaiables"
-		echo "export JAVA_HOME=$javapath
-		export JRE_HOME=\${JAVA_HOME}/jre 
-		export CLASSPATH=.:\${JAVA_HOME}/lib:\${JRE_HOME}/lib 
-		export PATH=\${JAVA_HOME}/bin:\$PATH" > /root/.bashrc
+		echo "export JAVA_HOME=${javapath}
+export JRE_HOME=\${JAVA_HOME}/jre
+export CLASSPATH=.:\${JAVA_HOME}/lib:\${JRE_HOME}/lib
+export PATH=\${JAVA_HOME}/bin:\$PATH" >> /root/.bashrc
 		source /root/.bashrc
 		sleep 1s
 		do_ing
+		cd $filepath
 		pr_green "All done!"
 }
 
 install_tomcat(){
 		clear
-		pr_red "Start installing Tomcat"
+		pr_red "Start installing Tomcat(Before install Tomcat, make sure you have already installed JAVA)"
 		sleep 2s
-		read -p "Enter the Fullpath for Tomcat(For most situations just press enter to use the default path: /data):" apacheurl
+		read -p "Enter the Fullpath for Tomcat(For most situations just press enter to use the default path: /data/hanshow):" apacheurl
 		if [ -z "${database}"];then
-			apacheurl="/data"
+			apacheurl="/data/hanshow"
 			pr_red "Tomcat will be install in $apacheurl"
 		else
 			pr_red "Tomcat will be install in $apacheurl"
 		fi
 		pr_red "Unzipping file"
+		mkdir -p /data/hanshow
 		tar -zxvf apache*.tar.gz -C $apacheurl
 		do_ing
 		pr_red "Installing Tomcat"
@@ -238,25 +242,29 @@ install_tomcat(){
 		apachepath=$apacheurl"/"$apachename
 		cd $apachepath/bin
 		tar -zxvf commons-daemon-native.tar.gz -C .
-		cd commons-daemon-1.1.0-native-src/unix/
-		./configure --with-java=$javapath
+		cd commons-daemon-*native-src/unix/
+		javapathwithbin=`which java`
+		javapath=${javapathwithbin%/*}
+		javap=${javapath%/*}
+		echo $javap
+		./configure --with-java=$javap
 		make
-		sleep 10s
 		cp jsvc $apachepath/bin/
 		cd $apachepath/bin
 		read -p "Enter the MIN jvm memory for Tomcat(eg:1024)(Press enter to use the default memory: 1024):" minm
-		if [ -z "${minm}"];then
+		if [ -z "${minm}" ];then
 			minm="1024"
 		fi
 		read -p "Enter the MAX jvm memory for Tomcat(eg:1024)(Press enter to use the default memory: 1024):" maxm
-		if [ -z "${maxm}"];then
+		if [ -z "${maxm}" ];then
 			maxm="1024"
 		fi
-		sed -i '/JAVA_HOME.*/c'"JAVA_HOME=$javapath" ./daemon.sh
-		sed -i '/CATALINA_HOME.*/c'"CATALINE_HOME=$apachepath" ./daemon.sh
-		sed -i '/CATALINA_BASE.*/c'"CATALINE_BASE=$apachepath" ./daemon.sh 
-		sed -i '/TOMCAT_USER.*/c'"TOMCAT_USER=root" ./daemon.sh
-		sed -i '/JAVA_OPTS.*/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ./daemon.sh
+		#sed -i '/\# resolve links - $0 may be a softlink/c\\# resolve links - $0 may be a softlink
+#/JAVA_HOME=$javap
+#CATALINE_HOME=$apachepath
+#TOMCAT_USER=root' ./daemon.sh
+		#sed -i '/JAVA_OPTS=/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ./daemon.sh
+		sed -i "0,/JAVA_OPTS=/s//JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"/" ./daemon.sh
 		cd $filepath
 		pr_red "Setting"
 		do_ing
@@ -266,7 +274,7 @@ install_tomcat(){
 check_env(){
 		pr_red "START CHECKING REQUIRED FILES"
 		do_ing 
-		sleep 2s
+		sleep 1s
 		check_mysql=`ls -l | grep mysql*.tar`
 		if [ -z  "$check_mysql" ];then
 			pr_red "Tar file mysql not found"
@@ -286,18 +294,21 @@ check_env(){
 			exit 1
 		fi
 		pr_green "OK!"
-		sleep 2s
+		sleep 1s
 		press_enter
 }
 clear
 pr_red "Checking root permission"
 do_ing
 check_root
-sleep 1s
 pr_green "OK"
 check_env
 clear
+pr_red "=========="
+pr_red "=========="
 pr_red "Onekey-install-environment for shopweb (v$version)"
+pr_red "=========="
+pr_red "=========="
 echo
 pr_green "If you find some bugs please contact boyuan.shi@hanshow.com (technical support)"
 echo
