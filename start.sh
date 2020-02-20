@@ -259,12 +259,16 @@ install_tomcat(){
 		if [ -z "${maxm}" ];then
 			maxm="1024"
 		fi
-		#sed -i '/\# resolve links - $0 may be a softlink/c\\# resolve links - $0 may be a softlink
-#/JAVA_HOME=$javap
-#CATALINE_HOME=$apachepath
-#TOMCAT_USER=root' ./daemon.sh
+		chkconf="#chkconfig:2345 10 90"
+		javahome="JAVA_HOME=$javap"
+		catahome="CATALINE_HOME=$apachepath"
+		tomuser="TOMCAT_USER=root"
 		#sed -i '/JAVA_OPTS=/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ./daemon.sh
 		sed -i "0,/JAVA_OPTS=/s//JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"/" ./daemon.sh
+		sed -i "N;2a$chkconf" ./daemon.sh
+		sed -i "N;2a$javahome" ./daemon.sh
+		sed -i "N;2a$catahome" ./daemon.sh
+		sed -i "N;2a$tomuser" ./daemon.sh
 		cd $filepath
 		pr_red "Setting"
 		do_ing
