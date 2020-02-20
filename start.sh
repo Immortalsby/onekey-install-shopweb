@@ -223,7 +223,8 @@ export PATH=\${JAVA_HOME}/bin:\$PATH" >> /root/.bashrc
 
 install_tomcat(){
 		clear
-		pr_red "Start installing Tomcat(Before install Tomcat, make sure you have already installed JAVA)"
+		pr_red "Start installing Tomcat"
+		pr_red "Before install Tomcat, make sure you have already installed JAVA"
 		sleep 2s
 		read -p "Enter the Fullpath for Tomcat(For most situations just press enter to use the default path: /data/hanshow):" apacheurl
 		if [ -z "${database}"];then
@@ -265,10 +266,10 @@ install_tomcat(){
 		tomuser="TOMCAT_USER=root"
 		#sed -i '/JAVA_OPTS=/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ./daemon.sh
 		sed -i "0,/JAVA_OPTS=/s//JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"/" ./daemon.sh
-		sed -i "N;2a$chkconf" ./daemon.sh
-		sed -i "N;2a$javahome" ./daemon.sh
-		sed -i "N;2a$catahome" ./daemon.sh
 		sed -i "N;2a$tomuser" ./daemon.sh
+		sed -i "N;2a$catahome" ./daemon.sh
+		sed -i "N;2a$javahome" ./daemon.sh
+		sed -i "N;2a$chkconf" ./daemon.sh
 		cd $filepath
 		pr_red "Setting"
 		do_ing
