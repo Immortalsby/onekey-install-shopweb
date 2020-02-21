@@ -277,6 +277,7 @@ install_app(){
 		pr_red "Setting shopweb as service"
 		do_ing
 		cp daemon.sh /etc/init.d/shopweb
+		chmod 755 /etc/init.d/shopweb
 		chkconfig --add shopweb
 		pr_red "Start shopweb service"
 		service shopweb start
@@ -338,6 +339,7 @@ install_app(){
 			chown root:root -R $apacheurl
 			chmod 755 -R $eslurl
 			chmod 755 -R $apacheurl	
+			chmod 755 /etc/init.d/eslworking
 			do_ing
 			pr_red "Start eslworking service"
 			sudo service eslworking start
