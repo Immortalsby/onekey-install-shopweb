@@ -52,9 +52,9 @@ press_enter(){
 
 install_mysql(){
 		clear
-		pr_red "Start installing MYSQL"
+		pr_green "Start installing MYSQL"
 		sleep 2s
-		pr_red "Checking if Mariadb packages have already installed"
+		pr_green "Checking if Mariadb packages have already installed"
 		do_ing
 		pr_red "[WARNING]The list will not be upgrade when you deleted packages"
 		PS3='Please enter which Mariadb package(s) you want to delete: '
@@ -99,11 +99,11 @@ install_mysql(){
 		pr_red "Unzipping file"
 		do_ing
 		tar -xvf mysql-* > /dev/null
-		pr_red "Installing Mysql"
-		rpm -ivh *-common-*
-		rpm -ivh *-libs-5*
-		rpm -ivh *-client-5*
-		rpm -ivh *-server-5*
+		pr_red "Installing Mysql 5.*.*"
+		rpm -ivh *-common-* > /dev/null
+		rpm -ivh *-libs-5* > /dev/null
+		rpm -ivh *-client-5* > /dev/null
+		rpm -ivh *-server-5* > /dev/null
 		do_ing
 		pr_green "Done!"
 		sleep 1s
@@ -118,11 +118,11 @@ install_mysql(){
 		fi
 		echo
 		pr_red "New password for root is $newpwd"
-		passwd=`grep "A temporary password is generated for root@localhost:" /var/log/mysqld.log | cut -d: -f4 | cut -d' ' -f2`
+		passwd=`grep "A temporary password is generated for root@localhost:" /var/log/mysqld.log | awk -F'localhost: ' '{print $2}'`
 		mysql -uroot -p$passwd --connect-expired-password -e "alter user 'root'@'localhost' identified by '$newpwd';
 		quit" 
 		do_ing
-		read -p "Name of database that you want to creat(Press enter to use the default name: shopweb):" database
+		read -p "Database name(Press enter to use the default name: shopweb):" database
 		if [ -z "${database}"];then
 			database="shopweb"
 		fi
@@ -146,14 +146,13 @@ install_mysql(){
 		do_ing
 		rm -rf mysql*.rpm
 		pr_green "All done!"
-		press_enter
 }
 
 install_java(){	
 		clear
-		pr_red "Start installing JAVA"
+		pr_green "Start installing JAVA"
 		sleep 1s
-		pr_red "Checking if JAVA packages have already installed"
+		pr_green "Checking if JAVA packages have already installed"
 		pr_red "[WARNING]The list will not be upgrade when you deleted packages"
 		PS3='Please enter which java package(s) you want to delete: '
 		c=0
@@ -183,6 +182,9 @@ install_java(){
 
 			esac
 		done
+		pr_red "Looking for remaining JAVA packages"
+		rpm -qa | grep java
+		pr_red "Make sure that you want to continue"
 		press_enter
 		pr_red "Checking if JAVA has already installed"
 		sleep 1s
@@ -207,7 +209,7 @@ install_java(){
 		sleep 1s
 		pr_red "Installing JAVA"
 		mkdir -p $javaurl
-		tar -zxvf jdk*.tar.gz -C $javaurl
+		tar -zxvf jdk*.tar.gz -C $javaurl > /dev/null
 		cd $javaurl
 		javaname=`ls`
 		javapath=$javaurl"/"$javaname
@@ -238,14 +240,14 @@ install_app(){
 		fi
 		pr_red "Unzipping file"
 		mkdir -p /data/hanshow
-		tar -zxvf apache*.tar.gz -C $apacheurl
+		tar -zxvf apache*.ta* -C $apacheurl > /dev/null
 		do_ing
 		pr_red "Installing Tomcat"
 		cd $apacheurl
 		apachename=`ls`
 		apachepath=$apacheurl"/"$apachename
 		cd $apachepath/bin
-		tar -zxvf commons-daemon-native.tar.gz -C .
+		tar -zxvf commons-daemon-native.tar.gz -C . > /dev/null
 		cd commons-daemon-*native-src/unix/
 		source /root/.bashrc
 		javapathwithbin=`which java`
@@ -312,27 +314,51 @@ install_app(){
 			do_ing
 		else
 			pr_green "Esl-working found"
-			pr_red "If your esl-working is not v2.5.4, press ctrl+c to exit"
-			press_enter
-			read -p "Enter the Fullpath for Esl-workong(For most situations just press enter to use the default path: /data/store):" eslurl
-			mkdir -p /data/store
+			read -p "Enter the Fullpath for Esl-working(Press enter to use the default path: /data/store):" eslurl
 			if [ -z "${eslurl}" ];then
 				eslurl="/data/store"
 			fi
+			mkdir -p $eslurl
+			pr_red "Intalling ESL-Working"
+			do_ing
 			if [[ $ifesl == eslworking*.zip ]];then
 				yum -y install unzip
-				unzip $ifesl -d $eslurl
+				unzip $ifesl -d $eslurl > /dev/null
 				pr_red "You need configure Esl-working yourself"
+			elif [[ $ifesl == eslworking*.tar ]];then
+				tar -xvf $ifesl -C $eslurl > /dev/null
 			else
 				cp -r $ifesl $eslurl/eslworking
 			fi
+			cd $eslurl
+			eslname=`ls | grep esl*`
+			cd $eslname
+			eslv=`ls | grep users`
+			if [[ $eslv == users ]];then
+				pr_red "Detected ESL version: 3.0.*"
+				do_ing
+				sleep 1s
+				pr_green "Create ESL Database"
+				read -p "Enter the MYSQL password(Press enter to use default password: H@nshow123):" eslpwd
+				if [ -z "${eslpwd}" ];then
+					eslpwd="H@nshow123"
+				fi
+				mysql -uroot -p$eslpwd --connect-expired-password -e "create database if not exists eslworking default charset utf8;" 
+				sed -i "0,/jdbc.host={server_host}/s//jdbc.host=localhost/" ${eslurl}/eslworkin*/config/jdbc.properties
+				sed -i "0,/jdbc.username={username}/s//jdbc.username=root/" ${eslurl}/eslworkin*/config/jdbc.properties
+				sed -i "0,/jdbc.password={password}/s##jdbc.password=${eslpwd}#" ${eslurl}/eslworkin*/config/jdbc.properties
+			fi
+			pr_red "Detected ESL version: 2.*.*"
+			cd $filepath
+			pr_red "Configuring eslworking.sh"
+			do_ing
 			#sed -i '/JAVA_OPTS=/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ./daemon.sh
 			#sed -i "0,/JAVA_OPTS=/s//JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"/" ./daemon.sh
-			sed -i "0,/JAVA_HOME=/s##JAVA_HOME=$javap#" ${eslurl}/eslworking/bin/eslworking.sh
-			sed -i "0,/APP_HOME=/s##APP_HOME=${eslurl}\/eslworking#" ${eslurl}/eslworking/bin/eslworking.sh
+			sed -i "0,/JAVA_HOME=/s##JAVA_HOME=$javap#" ${eslurl}/eslworkin*/bin/eslworking.sh
+			sed -i "0,/APP_HOME=/s##APP_HOME=${eslurl}\/${eslname}#" ${eslurl}/eslworkin*/bin/eslworking.sh
 			appuser="APP_USER=root"
-			sed -i "0,/APP_USER=/s//${appuser}/" ${eslurl}/eslworking/bin/eslworking.sh
-			cp ${eslurl}/eslworking/bin/eslworking.sh /etc/init.d/eslworking
+			sed -i "0,/APP_USER=/s//${appuser}/" ${eslurl}/eslworkin*/bin/eslworking.sh
+			cp ${eslurl}/eslworkin*/bin/eslworking.sh /etc/init.d/eslworking
 			chkconfig --add eslworking
 			pr_red "Changing right owner and privilleges"
 			chown root:root -R $eslurl
@@ -341,15 +367,18 @@ install_app(){
 			chmod 755 -R $apacheurl	
 			chmod 755 /etc/init.d/eslworking
 			do_ing
+			sleep 1s
+			pr_green "Done!"
 			pr_red "Start eslworking service"
 			sudo service eslworking start
-			pr_green "Done!"
-			pr_red "Service eslworking started"
+			pr_green "Service eslworking started"
 		fi
-		pr_red "Integration is not installed"
-		pr_red "======"
+		pr_red "Install Integration is not supported"
+		pr_red "= = = = = = = = = = = = = = "
 		pr_red "Please intall it manually"
 		sleep 2s
+		service eslworking stop
+		service eslworking start
 		pr_green "All done!"
 }
 
@@ -375,22 +404,37 @@ check_env(){
 			pr_red "Please put all required files in the path"
 			exit 1
 		fi
+		echo
 		pr_green "OK!"
 		sleep 1s
-		press_enter
 }
 clear
 pr_red "Checking root permission"
 do_ing
 check_root
+echo
 pr_green "OK"
+echo
+echo
+echo
 check_env
+echo
+echo
+pr_green "Program starts in 3s..."
+echo
+sleep 1s
+pr_green "Program starts in 2s..."
+echo
+sleep 1s
+pr_green "Program starts in 1s..."
+echo
+sleep 1s
 clear
-pr_red "=========="
-pr_red "=========="
+pr_red "= = = = = = = = = = = = = = = = = = = = = = = = = ="
+pr_red "= = = = = = = = = = = = = = = = = = = = = = = = = ="
 pr_red "Onekey-install-environment for shopweb (v$version)"
-pr_red "=========="
-pr_red "=========="
+pr_red "= = = = = = = = = = = = = = = = = = = = = = = = = ="
+pr_red "= = = = = = = = = = = = = = = = = = = = = = = = = ="
 echo
 pr_green "If you find some bugs please contact boyuan.shi@hanshow.com (technical support)"
 echo
