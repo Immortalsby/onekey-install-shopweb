@@ -14,7 +14,7 @@ set -o pipefail
 
 
 # All variables needed
-version=0.0.1
+version=0.0.2
 filepath=$(cd "$(dirname "$0")"; pwd)
 jdk_folder="/usr/local/java"
 # All funtions needed
@@ -288,6 +288,9 @@ install_app(){
 		pr_red "Setting"
 		do_ing
 		pr_green "Done"
+		pr_red "Will you install Shopweb?"
+		echo
+		press_enter
 		pr_red "Check if shopweb exists"
 		ifshop=`ls | grep shopweb*`
 		if [ -z  "$ifshop" ];then
@@ -306,6 +309,9 @@ install_app(){
 			pr_green "Done!"
 			sleep 1s
 		fi
+		pr_red "Will you install Eslworking?"
+		echo
+		press_enter
 		pr_red "Check if eslworking exists"
 		ifesl=`ls | grep eslworking*`
 		if [ -z  "$ifesl" ];then
@@ -347,8 +353,9 @@ install_app(){
 				sed -i "0,/jdbc.host={server_host}/s//jdbc.host=localhost/" ${eslurl}/eslworkin*/config/jdbc.properties
 				sed -i "0,/jdbc.username={username}/s//jdbc.username=root/" ${eslurl}/eslworkin*/config/jdbc.properties
 				sed -i "0,/jdbc.password={password}/s##jdbc.password=${eslpwd}#" ${eslurl}/eslworkin*/config/jdbc.properties
+			else
+				pr_red "Detected ESL version: 2.*.*"
 			fi
-			pr_red "Detected ESL version: 2.*.*"
 			cd $filepath
 			pr_red "Configuring eslworking.sh"
 			do_ing
@@ -358,6 +365,16 @@ install_app(){
 			sed -i "0,/APP_HOME=/s##APP_HOME=${eslurl}\/${eslname}#" ${eslurl}/eslworkin*/bin/eslworking.sh
 			appuser="APP_USER=root"
 			sed -i "0,/APP_USER=/s//${appuser}/" ${eslurl}/eslworkin*/bin/eslworking.sh
+			read -p "Enter the MIN jvm memory for Eslworking(eg:1024)(Press enter to use the default memory: 1024):" minm
+			if [ -z "${minm}" ];then
+				minm="1024"
+			fi
+			read -p "Enter the MAX jvm memory for Eslworking(eg:1024)(Press enter to use the default memory: 1024):" maxm
+			if [ -z "${maxm}" ];then
+				maxm="1024"
+			fi
+			sed -i '/JAVA_OPTS=\"/c'"JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"" ${eslurl}/eslworkin*/bin/eslworking.sh
+			#sed -i "0,/JAVA_OPTS=*/s//JAVA_OPTS=\"-Xms${minm}m -Xmx${maxm}m\"/" ${eslurl}/eslworkin*/bin/eslworking.sh
 			cp ${eslurl}/eslworkin*/bin/eslworking.sh /etc/init.d/eslworking
 			chkconfig --add eslworking
 			pr_red "Changing right owner and privilleges"
@@ -452,7 +469,7 @@ do
 			press_enter	
 			install_mysql
 			press_enter
-			sh ./start.sh
+			sh ./install_v${version}.sh
 			break
 	    	;;
         "Install JAVA")
@@ -460,7 +477,7 @@ do
 			press_enter
 			install_java
 			press_enter
-			sh ./start.sh
+			sh ./install_v${version}.sh
             break
 			;;
         "Install Applications")
@@ -468,7 +485,7 @@ do
 			press_enter
 			install_app
 			press_enter
-			sh ./start.sh
+			sh ./install_v${version}.sh
             break
 			;;
         "Quit")
