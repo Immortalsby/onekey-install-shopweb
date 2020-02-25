@@ -4,7 +4,7 @@ set -o pipefail
 #==========================================================
 #       System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #       Description: Onekey-install for shopweb environment
-#       Version: 0.0.1
+#       Version: 0.0.2
 #       Author: SHI Boyuan(boyuan.shi@hanshow.com)
 #       Git: https://github.com/Immortalsby/onekey-install-shopweb
 #       Website: boyuanshi.com
@@ -15,7 +15,11 @@ set -o pipefail
 
 # All variables needed
 version=0.0.2
-filepath=$(cd "$(dirname "$0")"; pwd)
+filepath=$(pwd)
+
+#echo $filepath
+#sleep 10s
+
 jdk_folder="/usr/local/java"
 # All funtions needed
 check_root(){
@@ -333,6 +337,10 @@ install_app(){
 				pr_red "You need configure Esl-working yourself"
 			elif [[ $ifesl == eslworking*.tar ]];then
 				tar -xvf $ifesl -C $eslurl > /dev/null
+			elif [[ $ifesl == eslworking*.7z ]];then
+				yum -y install epel-release	
+				yum -y install p7zip
+				7za x $ifesl -r -o$eslurl/
 			else
 				cp -r $ifesl $eslurl/eslworking
 			fi
@@ -393,7 +401,6 @@ install_app(){
 		pr_red "Install Integration is not supported"
 		pr_red "= = = = = = = = = = = = = = "
 		pr_red "Please intall it manually"
-		sleep 2s
 		service eslworking stop
 		service eslworking start
 		pr_green "All done!"
@@ -469,7 +476,7 @@ do
 			press_enter	
 			install_mysql
 			press_enter
-			sh ./install_v${version}.sh
+			hanshow
 			break
 	    	;;
         "Install JAVA")
@@ -477,16 +484,16 @@ do
 			press_enter
 			install_java
 			press_enter
-			sh ./install_v${version}.sh
-            break
+            		hanshow
+			break
 			;;
         "Install Applications")
             pr_red "You chose choice $REPLY which is $opt"
 			press_enter
 			install_app
 			press_enter
-			sh ./install_v${version}.sh
-            break
+        		hanshow    
+			break
 			;;
         "Quit")
            	exit 1
