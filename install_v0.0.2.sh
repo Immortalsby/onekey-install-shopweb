@@ -233,7 +233,14 @@ export PATH=\${JAVA_HOME}/bin:\$PATH" >> /root/.bashrc
 install_app(){
 		clear
 		pr_red "Start installing Tomcat"
-		pr_red "Before install Tomcat, make sure you have already installed JAVA"
+		if ! [ -x  "$(command -v java)" ];then
+			pr_green "No JAVA exists, quiting"
+			sleep 1s
+			pr_red "Quiting"
+			do_ing
+			sleep 1s
+			exit 1
+		fi
 		sleep 2s
 		read -p "Enter the Fullpath for Tomcat(For most situations just press enter to use the default path: /data/hanshow):" apacheurl
 		if [ -z "${apacheurl}"];then
