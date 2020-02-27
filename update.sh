@@ -5,7 +5,7 @@ pr_red() {
 }
 echo "Check new version..."
 git clone https://github.com/Immortalsby/onekey-install-shopweb.git
-cp ./onekey-install-shopweb/install* /bin/hanshow
+cp ./onekey-install-shopweb/install_v* /bin/hanshow
 cp ./onekey-install-shopweb/update.sh /bin/hanshowup
 chmod 775 /bin/hanshow
 chmod 775 /bin/hanshowup

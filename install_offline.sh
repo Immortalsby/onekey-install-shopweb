@@ -483,7 +483,7 @@ do
 			press_enter	
 			install_mysql
 			press_enter
-			hanshow
+			sh $0
 			break
 	    	;;
         "Install JAVA")
@@ -491,7 +491,7 @@ do
 			press_enter
 			install_java
 			press_enter
-            		hanshow
+			sh $0
 			break
 			;;
         "Install Applications")
@@ -499,7 +499,7 @@ do
 			press_enter
 			install_app
 			press_enter
-        		hanshow    
+			sh $0
 			break
 			;;
         "Quit")
