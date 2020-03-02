@@ -413,30 +413,6 @@ install_app(){
 		pr_green "All done!"
 }
 
-check_services(){
-		pr_red "CHECKING SERVICES"
-		do_ing
-		ch_tom=`ps -ef | grep tomcat | grep -v 'grep' | wc -l`
-		ch_esl=`ps -ef | grep eslworking | grep -v 'grep' | wc -l`
-		if [ $ch_tom = 2 ];then
-			pr_green "Service Shopweb running"
-		else
-			pr_red "Service Shopweb not running, trying restart it"
-			service shopweb stop
-			service shopweb start
-		fi
-		if [ $ch_esl = 2 ];then
-			pr_green "Service Eslworking running"
-		else
-			pr_red "Service Eslworking not running, trying restart it"
-			service eslworking stop
-			service eslworking start
-		fi
-		pr_red "RE-Checking"
-		
-		pr_green "Done!"
-}
-
 check_env(){
 		pr_red "START CHECKING REQUIRED FILES"
 		do_ing 
@@ -498,7 +474,7 @@ echo
 echo -e "\\033[0;31m[WARNING]Attention! All bad operations will destroy the system, please make 300% sure what you will do!\033[0m\n"
 echo
 PS3='Please enter your choice: '
-options=("Install MYSQL" "Install JAVA" "Install Applications" "Check Services Status" "Quit")
+options=("Install MYSQL" "Install JAVA" "Install Applications" "Quit")
 select opt in "${options[@]}"
 do
     case $opt in
@@ -507,7 +483,7 @@ do
 			press_enter	
 			install_mysql
 			press_enter
-			hanshow
+			sh $0
 			break
 	    	;;
         "Install JAVA")
@@ -515,7 +491,7 @@ do
 			press_enter
 			install_java
 			press_enter
-            hanshow
+			sh $0
 			break
 			;;
         "Install Applications")
@@ -523,13 +499,7 @@ do
 			press_enter
 			install_app
 			press_enter
-        	hanshow
-			break
-			;;
-		"Check Services Status")
-			check_services
-			press_enter
-        	hanshow
+			sh $0
 			break
 			;;
         "Quit")
