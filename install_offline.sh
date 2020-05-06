@@ -349,7 +349,7 @@ install_app(){
 				yum -y install p7zip
 				7za x $ifesl -r -o$eslurl/
 			else
-				cp -r $ifesl $eslurl/eslworking
+				cp -r $ifesl $eslurl/
 			fi
 			cd $eslurl
 			eslname=`ls | grep esl*`
