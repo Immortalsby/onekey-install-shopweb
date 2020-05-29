@@ -4,7 +4,7 @@ set -o pipefail
 #==========================================================
 #       System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #       Description: Onekey-install for SystemU
-#       Version: 0.1
+#       Version: 0.2
 #       Author: SHI Boyuan(boyuan.shi@hanshow.com)
 #       Git: https://github.com/Immortalsby/onekey-install-shopweb
 #       Website: boyuanshi.com
@@ -14,7 +14,7 @@ set -o pipefail
 
 
 # All variables needed
-version=0.1
+version=0.2
 filepath=$(pwd)
 
 #echo $filepath
@@ -272,8 +272,8 @@ install_app(){
 		javapath=${javapathwithbin%/*}
 		javap=${javapath%/*}
 		echo $javap
-		./configure --with-java=$javap
-		make
+		./configure --with-java=$javap > /dev/null
+		make > /dev/null
 		cp jsvc $apachepath/bin/
 		cd $apachepath/bin
 		read -p "Enter the MIN jvm memory for Tomcat(eg:1024)(Press enter to use the default memory: 1024):" minm
@@ -313,11 +313,10 @@ install_app(){
 			do_ing
 		else
 			pr_green "Shopweb found"
-			if [ $ifshop == "shopweb.war" ];then
-				cp shopweb.war $apachepath/webapps/
+			if [ $ifshop == "shopweb.zip" ];then
+				unzip -n shopweb.zip -d $apachepath/webapps/
 			else
 				cp -r $ifshop $apachepath/webapps/shopweb
-				
 			fi
 			pr_red "Install Shopweb"
 			do_ing
@@ -401,14 +400,14 @@ install_app(){
 			do_ing
 		else
 			pr_green "Integration found"
-			read -p "Enter the Fullpath for Esl-working(Press enter to use the default path: /data/hanshow/store):" inturl
+			read -p "Enter the Fullpath for Integration(Press enter to use the default path: /data/hanshow/store):" inturl
 			if [ -z "${inturl}" ];then
 				inturl="/data/hanshow/store"
 			fi
 			mkdir -p $inturl
 			pr_red "Intalling Integration"
 			cp -r $ifint $inturl/
-			pr_red "Configuring eslworking.sh"
+			pr_red "Configuring integration.sh"
 			do_ing
 			sed -i "0,/JAVA_HOME=/s##JAVA_HOME=$javap#" ${inturl}/Hans*/integration.sh
 			sed -i "0,/APP_HOME=/s##APP_HOME=${inturl}\/${ifint}#" ${inturl}/Hans*/integration.sh
